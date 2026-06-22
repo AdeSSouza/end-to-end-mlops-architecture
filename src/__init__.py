@@ -1,16 +1,24 @@
-# --- Definindo estratégia de log pra o projeto --- #
+"""
+INICIALIZAÇÃO DO PACOTE E GOVERNANÇA DE LOGS
+Autor: Adeilson Souza
+Contexto: Ponto de entrada estrutural do projeto end-to-end-mlops-architecture.
+
+Boas Práticas Aplicadas:
+- Consolidação do diretório como pacote raiz para viabilizar o desenvolvimento editável.
+- Centralização da estratégia de logs em nível de pacote para herança uniforme dos submódulos.
+- Padronização de formato de timestamps e rastreabilidade por número de linha.
+"""
 
 import logging
 
-# Configure the logging strategy 
-# configurando o sistema de logs, quando feita a nível de pacote, todos os pacotes e módulos dentro de sourcing herdam essa configuração
-# garantido consistência e uniformidade dos registros de log ao longo do projeto.
+# Configuração centralizada da estratégia de logs globais da arquitetura
+# Definido no escopo raiz do pacote para que todas as 5 camadas funcionais herdem esta estrutura
 logging.basicConfig(
-    level=logging.INFO, # Nível de log DEBUG, INFO, WARNING, ERROR, CRITICAL
-    format="%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s", # Timestamp, nome do módulo, linha do código, nível do log, mensagem quando log é invocado
-    datefmt="%Y-%m-%d %H:%M:%S", # Formato de data
+    level=logging.INFO, 
+    format="%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s", 
+    datefmt="%Y-%m-%d %H:%M:%S", 
     handlers=[
-        logging.StreamHandler() # Dertermina pra onde o log será enviado, aqui imprime no console na tela mesmo
+        logging.StreamHandler() 
     ]
 )
 

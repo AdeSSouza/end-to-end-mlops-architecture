@@ -1,3 +1,14 @@
+<!--
+INTERFACE DE USUÁRIO PARA INFERÊNCIA (INDEX.HTML)
+Autor: Adeilson Souza
+Contexto: Camada de visualização (Templates Jinja2) da interface Flask.
+
+Boas Práticas Aplicadas:
+- Estruturação de formulário seguro com tipo de codificação para upload de arquivos (multipart/form-data).
+- Restrição nativa de extensão de arquivos no navegador via atributo accept.
+- Renderização condicional de blocos de mensagens através da sintaxe de tags do Jinja2.
+-->
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -12,14 +23,22 @@
 <body>
     <div class="container">
         <h1>Breast Cancer Prediction Interface</h1>
+
+        <!-- Formulário de envio direcionado para a rota de processamento do Flask -->
         <form action="/upload" method="post" enctype="multipart/form-data">
             <p>Upload a CSV file with breast cancer features:</p>
+
+            <!-- Campo de entrada limitado estritamente a arquivos de extensão .csv -->
             <input type="file" name="file" accept=".csv" required>
             <input type="submit" value="Get Predictions">
         </form>
+
+        <!-- Bloco condicional para renderização de alertas de falha no upload ou processamento -->
         {% if error %}
         <p class="error">{{ error }}</p>
         {% endif %}
+
+        <!-- Bloco condicional para exibição da tabela ou payload de resultados gerados pelo modelo -->
         {% if predictions %}
         <h2>Predictions:</h2>
         <pre>{{ predictions }}</pre>
