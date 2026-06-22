@@ -1,7 +1,8 @@
 # end-to-end-mlops-architecture
 
-**Autor:** Adeilson Souza
-**Diretriz Estratégica:** O objetivo principal deste projeto não reside na sofisticação do modelo de classificação ou no ajuste fino da rede neural profunda em si. O propósito central é o estudo prático, a engenharia e a aplicação dos pilares de MLOps (Machine Learning Operations), replicando os padrões, o rigor de isolamento e a arquitetura modular exigidos em cenários corporativos reais.
+* **Autor:** Adeilson Souza (Mestre em Ciência da Computação)
+* **Diretriz Estratégica:** O objetivo principal deste projeto não reside na sofisticação do modelo de classificação ou no ajuste fino da rede neural profunda em si. O propósito central é o estudo prático, a engenharia e a aplicação dos pilares de MLOps (Machine Learning Operations), replicando os padrões, o rigor de isolamento e a arquitetura modular exigidos em cenários corporativos reais.
+
 
 
 ## 📁 Estrutura do Projeto
