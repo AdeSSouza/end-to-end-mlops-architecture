@@ -10,14 +10,14 @@ stages:
     outs:
     - path: data/raw/raw.csv
       hash: md5
-      md5: 0716a4af82cb9f127b04fdff5223565a
+      md5: 6ae08ecef9285314c3f3a952612cee21
       size: 116187
   preprocess_data:
     cmd: python -m src.data_preprocessing.preprocess_data
     deps:
     - path: data/raw/raw.csv
       hash: md5
-      md5: 0716a4af82cb9f127b04fdff5223565a
+      md5: 6ae08ecef9285314c3f3a952612cee21
       size: 116187
     - path: src/data_preprocessing/preprocess_data.py
       hash: md5
@@ -30,27 +30,27 @@ stages:
     outs:
     - path: artifacts/[features]_mean_imputer.joblib
       hash: md5
-      md5: be083ac485011c4d151fc20e16f0cb0b
+      md5: f38b9739964a1c556a6604154ca2863a
       size: 1511
     - path: data/preprocessed/test_preprocessed.csv
       hash: md5
-      md5: e55523c0297c624bbb91ca99640adc3f
-      size: 26669
+      md5: c0c0b977fd38f8a30415bc0a2624c1bc
+      size: 26627
     - path: data/preprocessed/train_preprocessed.csv
       hash: md5
-      md5: a7d57de5603e31c8805b255c1cda04e2
-      size: 105531
+      md5: 622470869a561d52e8b6e0a2952cf560
+      size: 106052
   engineer_features:
     cmd: python -m src.feature_engineering.engineer_features
     deps:
     - path: data/preprocessed/test_preprocessed.csv
       hash: md5
-      md5: e55523c0297c624bbb91ca99640adc3f
-      size: 26669
+      md5: c0c0b977fd38f8a30415bc0a2624c1bc
+      size: 26627
     - path: data/preprocessed/train_preprocessed.csv
       hash: md5
-      md5: a7d57de5603e31c8805b255c1cda04e2
-      size: 105531
+      md5: 622470869a561d52e8b6e0a2952cf560
+      size: 106052
     - path: src/feature_engineering/engineer_features.py
       hash: md5
       md5: 42a1267c95815768af3ab9b498b4ecc6
@@ -58,31 +58,31 @@ stages:
     outs:
     - path: artifacts/[features]_scaler.joblib
       hash: md5
-      md5: 6d8fb5f3387aec9e0583881ad90dafeb
+      md5: 3c09492af31091853f383c4eab34d680
       size: 2135
     - path: data/processed/test_processed.csv
       hash: md5
-      md5: 6bfac2da9791d998b5fe814d1415451f
-      size: 68011
+      md5: c853827b2aa3ec8366053af424af2701
+      size: 68275
     - path: data/processed/train_processed.csv
       hash: md5
-      md5: 47c6592ed0f996e8374d4f9ae700df9e
-      size: 268572
+      md5: 55356f2f8a92435a4284506c8a705d7a
+      size: 270582
   train:
     cmd: python -m src.model_training.train_model
     deps:
     - path: data/processed/train_processed.csv
       hash: md5
-      md5: 47c6592ed0f996e8374d4f9ae700df9e
-      size: 268572
+      md5: 55356f2f8a92435a4284506c8a705d7a
+      size: 270582
     - path: src/model_training/train_model.py
       hash: md5
       md5: c2f455a8ad749a2c08a712a62cdbb0eb
       size: 7118
     params:
       params.yaml:
-        train.batch_size: 32
-        train.dropout_rate: 0.3
+        train.batch_size: 16
+        train.dropout_rate: 0.25
         train.epochs: 100
         train.hidden_layer_1_neurons: 64
         train.hidden_layer_2_neurons: 32
@@ -94,12 +94,12 @@ stages:
       size: 617
     - path: metrics/training.json
       hash: md5
-      md5: 799f1ae8516b5564e99e3ad750b877ad
+      md5: 289a7d9fe3c87308a7838cba6d1edde6
       size: 141
     - path: models/model.keras
       hash: md5
-      md5: f61dd6f72443331dd6fe755e5c597d3e
-      size: 79417
+      md5: ae19afd6efb2cd86b8683a4eb2137099
+      size: 79419
   evaluate:
     cmd: python -m src.model_evaluation.evaluate_model
     deps:
@@ -109,12 +109,12 @@ stages:
       size: 617
     - path: data/processed/test_processed.csv
       hash: md5
-      md5: 6bfac2da9791d998b5fe814d1415451f
-      size: 68011
+      md5: c853827b2aa3ec8366053af424af2701
+      size: 68275
     - path: models/model.keras
       hash: md5
-      md5: f61dd6f72443331dd6fe755e5c597d3e
-      size: 79417
+      md5: ae19afd6efb2cd86b8683a4eb2137099
+      size: 79419
     - path: src/model_evaluation/evaluate_model.py
       hash: md5
       md5: 7efd96f9e7a71f13e0c3a5822c5600b9
@@ -122,5 +122,5 @@ stages:
     outs:
     - path: metrics/evaluation.json
       hash: md5
-      md5: 6fa21a2d5e7213493477d1d8ee033679
-      size: 781
+      md5: f3e9522cd093fa91125122693c3d2c24
+      size: 794
