@@ -10,6 +10,7 @@ Boas Práticas Aplicadas:
 """
 
 import logging
+import time
 
 import numpy as np
 import pandas as pd
@@ -40,6 +41,9 @@ def fetch_data() -> pd.DataFrame:
     
     # Inclusão da coluna de respostas (target) no DataFrame final
     data["target"] = dataset.target
+    
+    # Reordena os dados para simular novos dados de entrada
+    data = data.sample(frac=1, random_state=int(time.time())).reset_index(drop=True)
     
     return data
 
