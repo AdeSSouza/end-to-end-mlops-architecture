@@ -13,3 +13,6 @@ models/*.keras
 
 # Metrics
 metrics/*.json
+
+# DVC
+.dvc
