@@ -1,2 +1,5 @@
 [core]
     autostage = true
+    remote = origin
+['remote "origin"']
+    url = https://dagshub.com/AdeSSouza/end-to-end-mlops-architecture.dvc
