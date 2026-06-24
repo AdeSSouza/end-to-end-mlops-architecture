@@ -78,3 +78,36 @@
 * **Isolamento de Teste**: A leitura e particionamento ocorrem sobre o arquivo `test_processed.csv`. Como esses dados não foram vistos pela rede neural durante o treinamento, o resultado estatístico reflete a real capacidade de generalização do algoritmo.
 * **Extração de Diagnósticos de Classificação**: O script utiliza a função `np.argmax()` para traduzir as probabilidades geradas pela última camada `softmax` da rede neural em predições de classes discretas.
 * **Estruturação de Métricas para Auditoria**: As métricas geradas via `classification_report` (precisão, recall, f1-score) e `confusion_matrix` são unificadas em um dicionário Python e gravadas de forma automatizada no arquivo `metrics/evaluation.json`, permitindo rastreabilidade histórica de performance.
+
+---
+
+## ⛓️ Governança de Dados e Modelos com DVC (Data Version Control)
+
+Neste módulo, implementei a orquestração e o versionamento do pipeline de Machine Learning utilizando o DVC v3.59.1, integrando o controle de código do Git ao rastreamento de artefatos pesados e experimentos.
+
+### 1. Arquitetura do Pipeline (`dvc.yaml`)
+A infraestrutura do pipeline foi mapeada em um Grafo Acíclico Dirigido (DAG) contendo 5 estágios interdependentes. Cada estágio declara estritamente seus comandos de execução (`cmd`), dependências de código/dados (`deps`), parâmetros de entrada (`params`) e artefatos de saída (`outs` / `metrics`):
+- **`load_data`**: Ingestão dos dados brutos (`data/raw/raw.csv`).
+- **`preprocess_data`**: Tratamento de dados, imputação de nulos (`_mean_imputer.joblib`) e divisão em treino e teste.
+- **`engineer_features`**: Transformações e escalonamento de variáveis com salvamento do estado do transformador (`_scaler.joblib`).
+- **`train`**: Treinamento do modelo de Deep Learning em Keras (`model.keras`) com salvamento do encoder do alvo (`_one_hot_encoder.joblib`) e exportação de métricas de treino.
+- **`evaluate`**: Avaliação de performance contra a base de teste e geração de relatórios de métricas (`metrics/evaluation.json`).
+
+### 2. Automação e Ciclo de Vida da Pipeline
+- **Idempotência (`dvc repro`):** Otimização do tempo de computação. O DVC calcula os *hashes* das dependências e pula (*skip*) etapas cujos códigos, parâmetros e dados de entrada não sofreram alterações.
+- **Simulação de Drift de Dados:** Adicionado gatilho temporal baseado em `time.time()` no script de carga para embaralhar as linhas e forçar a reexecução completa do pipeline para testes de linhagem.
+- **Rastreabilidade Entre Commits:** Sincronização do estado dos dados com versões antigas do código através da combinação dos comandos `git checkout <hash>` e `dvc checkout`.
+- **Autostage:** Configurado `dvc config core.autostage true` para automatizar a indexação dos ponteiros de dados diretamente no estágio de preparação do Git.
+
+### 3. Gerenciamento e Rastreamento de Experimentos
+Utilização do motor de experimentos do DVC para tunagem de hiperparâmetros sem poluição do histórico de branches do Git:
+- **Execução Isolada:** Uso de `dvc exp run -S <parametro>=<valor>` para modificar dinamicamente variáveis como `batch_size`, `test_size` e `dropout_rate`.
+- **Fila de Execução (`--queue`):** Criação e enfileiramento de múltiplos experimentos concorrentes para processamento em lote via `dvc exp run --run-all`.
+- **Auditoria de Resultados:** Visualização e comparação tabular de métricas e hiperparâmetros através do `dvc exp show`.
+- **Persistência de Melhor Modelo:** Aplicação do experimento vencedor de volta ao código produtivo via `dvc exp apply <experiment_id>`.
+
+### 4. Armazenamento Remoto Comercial (DagsHub)
+Configuração do DagsHub como o provedor remoto de armazenamento de dados e modelos da arquitetura:
+- Armazenamento centralizado seguro e independente do GitHub para manter o repositório de código leve.
+- Autenticação local segura via credenciais básicas em formato de token de acesso restrito (evitando vazamento de segredos no histórico do Git).
+- Sincronização bidirecional do pipeline por meio dos comandos de transporte de dados `dvc push` e `dvc pull`.
