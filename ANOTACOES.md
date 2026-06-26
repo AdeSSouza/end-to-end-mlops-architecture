@@ -111,3 +111,30 @@ Configuração do DagsHub como o provedor remoto de armazenamento de dados e mod
 - Armazenamento centralizado seguro e independente do GitHub para manter o repositório de código leve.
 - Autenticação local segura via credenciais básicas em formato de token de acesso restrito (evitando vazamento de segredos no histórico do Git).
 - Sincronização bidirecional do pipeline por meio dos comandos de transporte de dados `dvc push` e `dvc pull`.
+
+---
+
+## 🧪 Rastreamento Avançado e Ciclo de Vida de Modelos com MLflow
+
+Implementamos a integração do MLflow v2 como o motor central de observabilidade, auditoria e governança do ciclo de vida dos modelos de Machine/Deep Learning, estabelecendo a interoperabilidade direta com o ecossistema DVC.
+
+### 1. Centralização e Segurança de Variáveis de Ambiente
+Para desacoplar as configurações de infraestrutura do código-fonte e garantir conformidade com as boas práticas de segurança da informação:
+- **`python-dotenv`:** Injetado na arquitetura para gerenciar strings de conexão e parâmetros globais.
+- **Isolamento de Credenciais:** Configurado o arquivo `.env` para apontar o servidor de rastreamento (`MLFLOW_TRACKING_URI=http://localhost:5000`) e devidamente indexado no `.gitignore` para mitigar o risco de vazamento de segredos no repositório remoto.
+- **Inicialização Nativa:** Centralizado o carregamento automático das variáveis no arquivo `src/__init__.py` via `load_dotenv()`, assegurando que qualquer módulo do pipeline inicialize com o contexto correto de variáveis de ambiente.
+
+### 2. Orquestração e Interoperabilidade DVC + MLflow (Nested Runs)
+Desenvolvemos um mecanismo dinâmico no script de treinamento (`train_model.py`) para capturar o contexto de execuções concorrentes originadas pelo gerenciador de experimentos do DVC, resolvendo o desafio de manter as duas ferramentas sincronizadas:
+- **Detecção de Contexto:** O pipeline monitora ativamente a existência da variável `DVC_EXP_NAME`.
+- **Rastreamento Aninhado (`Nested Runs`):** Caso um experimento seja disparado em lote (via fila do DVC), o MLflow realiza uma varredura via `mlflow.search_runs` procurando a tag `tags.dvc_exp = 'True'`. 
+- **Hierarquia Visual:** Se for a primeira execução do lote, uma execução "mãe" (*Parent Run*) é gerada. Os testes subsequentes de hiperparâmetros gerados pelo DVC (`--queue`) são injetados automaticamente como execuções "filhas" (*Child Runs*) usando a propriedade `nested=True`. Isso estruturou uma árvore hierárquica limpa no Dashboard do MLflow.
+
+### 3. Execução de Experimentos em Lote no Terminal
+A validação do ecossistema integrado foi consolidada por meio de comandos de linha de comando (CLI), eliminando gargalos manuais de parametrização:
+- Enfileiramento de testes concorrentes de hiperparâmetros (como modificações em `test_size`, `dropout_rate` e `random_seed`) utilizando a flag `--queue`.
+- Processamento massivo paralelo/sequencial disparado nativamente pelo comando corporativo:
+  ```bash
+  dvc exp run --run-all
+  ```
+- Auditoria, comparação de curvas de perda (*loss*) e métricas de acurácia consolidadas centralizadamente por meio da interface gráfica do **MLflow UI** (`mlflow ui`).
