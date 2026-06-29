@@ -12,7 +12,16 @@ Boas Práticas Aplicadas:
 import logging
 from dotenv import load_dotenv
 
+import dagshub
+
 load_dotenv()
+
+# Inicializa o DagsHub com as credenciais de autenticação
+dagshub.init(
+	repo_owner='AdeSSouza',
+	repo_name='end-to-end-mlops-architecture'
+)
+
 
 # Configuração centralizada da estratégia de logs globais da arquitetura
 # Definido no escopo raiz do pacote para que todas as 5 camadas funcionais herdem esta estrutura
