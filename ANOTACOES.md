@@ -171,3 +171,22 @@ Para automatizar o fluxo de autenticação e garantir que o pipeline se comuniqu
 ### 2. Desacoplamento e Redirecionamento do Tracking URI
 - O arquivo de configuração de ambiente `.env` foi atualizado para apontar a variável `MLFLOW_TRACKING_URI` diretamente para o endpoint remoto fornecido pelo DagsHub, substituindo o servidor local (`localhost`).
 - Com essa mudança de arquitetura, sempre que comandos como `dvc repro` ou o script de governança `src.register_artifacts` são executados, o MLflow envia automaticamente todos os metadados, métricas e o registro de novas versões de modelos diretamente para os servidores da nuvem, centralizando a auditoria para múltiplos membros do time.
+
+
+## 🐳 Conteinerização Estruturada com Isolamento de Artefatos e Tokens de Nuvem
+
+Finalizamos a robustez da camada de conteinerização utilizando o Docker, solucionando desafios críticos de rede (port forwarding), segurança de segredos e otimização do tamanho de imagens para ambientes produtivos.
+
+### 1. Governança e Otimização da Imagem (`.dockerignore`)
+Para garantir a portabilidade do contêiner e evitar o desperdício de armazenamento com arquivos redundantes que já estão sob a governança do DVC e do MLflow:
+- **Exclusão de Binários:** O arquivo `.dockerignore` foi parametrizado para ignorar as pastas locais `artifacts/` e `models/`. Isso impede que pesos pesados de Deep Learning e transformadores `.joblib` entrem estaticamente no build da imagem, reduzindo drasticamente o tamanho final do artefato Docker.
+- **Ciclo de Inicialização:** Incluída a biblioteca `python-dotenv` no pacote `app/__init__.py` para carregar o arquivo `.env` contendo o `DAGSHUB_USER_TOKEN`. Isso permite que a aplicação web Flask, mesmo isolada dentro do contêiner, autentique-se dinamicamente na nuvem do DagsHub para baixar o modelo e os transformadores sob demanda via API em tempo de execução.
+
+### 2. Arquitetura de Redes e Alinhamento de Portas de Produção
+Durante a homologação do contêiner em ambiente local WSL2, mapeamos o fluxo de tráfego entre o sistema hospedeiro (Windows) e o servidor de produção WSGI (Gunicorn):
+- **O Desafio de Rede:** O servidor Gunicorn foi configurado para escutar requisições nativamente na porta `5001` dentro do ambiente isolado do Linux.
+- **A Solução (Ponte de Portas):** O comando de inicialização foi ajustado cirurgicamente para `docker run -p 5001:5001 ml-classifier`. Esse alinhamento garante que as requisições disparadas no navegador do Windows via `http://localhost:5001` sejam direcionadas sem perdas para a porta `5001` interna do contêiner, eliminando falhas de conexão recusada.
+
+### 3. Depuração de Bugs de Inicialização (Case-Sensitivity)
+- Diagnosticamos e corrigimos uma falha de carregamento do Gunicorn (código de saída `Exited (3)`) inspecionando os logs de erro do contêiner (`docker logs`).
+- **Resolução:** Corrigida a linha 22 do script `app/main.py`, alterando a importação do cliente do MLflow de `MLflowClient` (errado) para `MlflowClient` (correto), respeitando a regra estrita de *case-sensitivity* do interpretador Python.
