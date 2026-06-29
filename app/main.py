@@ -15,10 +15,11 @@ import logging
 import os
 
 import joblib
+import mlflow
 import pandas as pd
 from flask import Flask, render_template, request
 from sklearn.datasets import load_breast_cancer
-from tensorflow.keras.models import load_model
+from mlflow.tracking import MLflowClient
 
 # Configuração do Logger dedicado ao monitoramento do servidor web
 logger = logging.getLogger("app.main")
@@ -36,7 +37,29 @@ class ModelService:
         """
         logger.info("Carregando artefatos da pasta local do projeto")
 
-        # Definição de caminhos base mapeados no projeto local
+        # Carrega o modelo a partir do registro centralizado
+        logger.info("Carregando o modelo registrado a partir do MLflow Model Registry")
+        self.model = mlflow.keras.load_model("models:/model/latest")
+
+        # Recupera o run_id por meio dos metadados da versão do modelo
+        client = MlflowClient()
+        run_id = client.get_registered_model("model").latest_versions[0].run_id
+
+        # Realiza o download dos artefatos vinculados à execução selecionada
+        logger.info(f"Carregando os artefatos a partir da execucao {run_id}")
+        artifacts_dir = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path="")
+
+        imputer_path = os.path.join(artifacts_dir, "[features]_mean_imputer.joblib")
+        self.features_imputer = joblib.load(imputer_path)
+        scaler_path = os.path.join(artifacts_dir, "[features]_scaler.joblib")
+        self.features_scaler = joblib.load(scaler_path)
+        encoder_path = os.path.join(artifacts_dir, "[target]_one_hot_encoder.joblib")
+        self.target_encoder = joblib.load(encoder_path)
+                
+        logger.info("Modelo e artefatos relacionados carregados com sucesso")
+
+
+        """# Definição de caminhos base mapeados no projeto local
         artifacts_dir = "artifacts"
         models_dir = "models"
 
@@ -54,7 +77,7 @@ class ModelService:
         self.features_imputer = joblib.load(features_imputer_path)
         self.features_scaler = joblib.load(features_scaler_path)
         self.target_encoder = joblib.load(target_encoder_path)
-        self.model = load_model(model_path)
+        self.model = load_model(model_path)"""
 
         logger.info("Todos os artefatos foram carregados com sucesso")
 
