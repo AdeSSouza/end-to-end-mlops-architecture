@@ -157,3 +157,17 @@ O modelo de Deep Learning aprovado foi desacoplado dos caminhos físicos do disc
 Para mitigar o risco de degradação ou quebra de predições em produção devido ao desalinhamento entre o modelo e o pré-processamento:
 - **Download Dinâmico:** A arquitetura realiza o download sob demanda de todos os metadados e transformadores de dados da execução vencedora via `mlflow.artifacts.download_artifacts`.
 - **Garantia de Reprodutibilidade:** Carregamento seguro e desserialização via `joblib` dos arquivos exatos utilizados no treinamento (`_mean_imputer.joblib`, `_scaler.joblib` e `_one_hot_encoder.joblib`), garantindo consistência matemática absoluta na etapa de inferência.
+
+
+## ☁️ Centralização do Servidor de Rastreamento na Nuvem (DagsHub)
+
+A arquitetura de observabilidade foi escalada do ambiente puramente local para uma infraestrutura em nuvem centralizada, utilizando o DagsHub como o provedor gerenciado para o servidor de rastreamento do MLflow.
+
+### 1. Integração e Autenticação Nativa via SDK
+Para automatizar o fluxo de autenticação e garantir que o pipeline se comunique de forma segura com o repositório remoto sem expor credenciais estáticas:
+- **`dagshub==0.5.9`:** Adicionado ao gerenciador de dependências (`pyproject.toml`) para habilitar o uso do ecossistema e SDK oficial do DagsHub.
+- **Inicialização Centralizada:** Injetado o comando `dagshub.init()` no arquivo de inicialização do pacote (`src/__init__.py`), parametrizado com o proprietário do repositório (`repo_owner`) e o nome do projeto (`repo_name`). Isso garante que qualquer execução de módulo herde automaticamente o contexto autenticado na nuvem.
+
+### 2. Desacoplamento e Redirecionamento do Tracking URI
+- O arquivo de configuração de ambiente `.env` foi atualizado para apontar a variável `MLFLOW_TRACKING_URI` diretamente para o endpoint remoto fornecido pelo DagsHub, substituindo o servidor local (`localhost`).
+- Com essa mudança de arquitetura, sempre que comandos como `dvc repro` ou o script de governança `src.register_artifacts` são executados, o MLflow envia automaticamente todos os metadados, métricas e o registro de novas versões de modelos diretamente para os servidores da nuvem, centralizando a auditoria para múltiplos membros do time.
