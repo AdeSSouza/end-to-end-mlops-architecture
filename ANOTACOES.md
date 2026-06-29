@@ -138,3 +138,22 @@ A validação do ecossistema integrado foi consolidada por meio de comandos de l
   dvc exp run --run-all
   ```
 - Auditoria, comparação de curvas de perda (*loss*) e métricas de acurácia consolidadas centralizadamente por meio da interface gráfica do **MLflow UI** (`mlflow ui`).
+
+## 📦 Governança de Artefatos e Registro Centralizado de Modelos (Model Registry)
+
+Implementamos a camada de persistência, auditoria e rastreabilidade de artefatos binários e o gerenciamento de ciclo de vida de modelos comerciais utilizando o componente `MlflowClient`.
+
+### 1. Automação na Seleção do Melhor Modelo
+Desenvolvemos um script orquestrador (`register_artifacts.py`) para eliminar processos manuais de avaliação de métricas antes do deploy:
+- **Filtro de Linhagem:** O script varre o histórico de execuções filhas (*Child Runs*) associadas a um experimento mãe através de queries estruturadas no MLflow (`filter_string`).
+- **Critério de Seleção:** Classifica automaticamente os testes em ordem decrescente com base na acurácia de teste (`metrics.test_accuracy DESC`) para capturar cirurgicamente o ID da execução campeã do lote (`best_run`).
+
+### 2. Central de Governança (MLflow Model Registry)
+O modelo de Deep Learning aprovado foi desacoplado dos caminhos físicos do disco e centralizado na governança de modelos do MLflow:
+- **Controle de Versão:** Criação do modelo lógico e vinculação automática de novas versões estáveis (`create_model_version`) apontando diretamente para a URI única da execução (`runs:/<run_id>/model`).
+- Isso viabiliza que serviços externos (como a nossa API Flask) consumam a versão mais recente homologada (`models:/model/latest`) sem a necessidade de alterar caminhos de arquivos estáticos no código de produção.
+
+### 3. Sincronização Estável de Artefatos para Inferência
+Para mitigar o risco de degradação ou quebra de predições em produção devido ao desalinhamento entre o modelo e o pré-processamento:
+- **Download Dinâmico:** A arquitetura realiza o download sob demanda de todos os metadados e transformadores de dados da execução vencedora via `mlflow.artifacts.download_artifacts`.
+- **Garantia de Reprodutibilidade:** Carregamento seguro e desserialização via `joblib` dos arquivos exatos utilizados no treinamento (`_mean_imputer.joblib`, `_scaler.joblib` e `_one_hot_encoder.joblib`), garantindo consistência matemática absoluta na etapa de inferência.
