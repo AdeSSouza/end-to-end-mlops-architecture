@@ -9,6 +9,9 @@ Boas Práticas Aplicadas:
 - Padronização de strings de formatação para auditoria em tempo de execução.
 """
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuração da estratégia de logs globais para o escopo do pacote de aplicação
 # Garante que os fluxos da interface de serviço herdem o mesmo layout de rastreabilidade

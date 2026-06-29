@@ -19,7 +19,7 @@ import mlflow
 import pandas as pd
 from flask import Flask, render_template, request
 from sklearn.datasets import load_breast_cancer
-from mlflow.tracking import MLflowClient
+from mlflow.tracking import MlflowClient
 
 # Configuração do Logger dedicado ao monitoramento do servidor web
 logger = logging.getLogger("app.main")
