@@ -212,3 +212,46 @@ A etapa final da DAG (`create_app_image`) foi atualizada utilizando o operador `
 - **Build Identificado:** Constrói a imagem da aplicação web Flask acoplando a tag do usuário remoto do Docker Hub (`${DOCKER_HUB_USERNAME}/ml-classifier`) [3.1].
 - **Autenticação Não-Interativa (`--password-stdin`):** Realização de login seguro no terminal Docker consumindo o token (`DOCKER_HUB_TOKEN`) isolado no arquivo de ambiente `.env`, prevenindo a exposição ou vazamento de segredos textuais nos logs de produção.
 - **Deploy Remoto (`docker push`):** Publicação automatizada da imagem final com o modelo vencedor do MLflow no repositório remoto do Docker Hub, disponibilizando a aplicação em alta disponibilidade para deploy imediato em qualquer servidor de nuvem comercial [3.1, 3.5].
+
+
+## 🗺️ MAPA VISUAL DO FLUXO: AIRFLOW + DOCKER HUB (RESUMO DO MAESTRO)
+
+```text
+ [ Computador Local (WSL2) ]                             [ Nuvem Pública ]
+┌───────────────────────────┐                           ┌─────────────────┐
+│ 🕒 Airflow (Scheduler)    │                           │                 │
+│         │                 │                           │                 │
+│         ▼ (dvc repro)     │                           │                 │
+│ ⛓️ DVC Pipeline            │                           │   📊 DagsHub    │
+│         │ (Métricas)      │──────────────────────────>│   (MLflow)      │
+│         ▼                 │                           │                 │
+│ 📦 Pasta /artifacts       │                           │                 │
+│         │                 │                           │                 │
+│         ▼ (docker build)  │                           │                 │
+│ 🐳 Docker-in-Docker       │                           │   🐳 Docker Hub │
+│         │                 │                           │  (API Pronta)   │
+│         ▼ (docker push)   │──────────────────────────>│                 │
+└───────────────────────────┘                           └─────────────────┘
+```
+
+### 🧠 Guia Rápido de Sobrevivência para Linhas de Comando
+
+Quando precisar ligar ou dar manutenção neste ecossistema no futuro, use estes comandos essenciais:
+
+```bash
+# 1. Construir a imagem customizada do Airflow aplicando alterações de código:
+docker compose -f docker-compose.airflow.yaml build
+
+# 2. Ligar o ecossistema completo visualizando os logs em tempo real (Trava o terminal):
+docker compose -f docker-compose.airflow.yaml up
+
+# 3. Derrubar o ambiente limpando as redes internas e contêineres:
+docker compose -f docker-compose.airflow.yaml down
+
+# 4. Forçar a recriação da malha de rede em caso de erro de conexão com o banco:
+docker compose -f docker-compose.airflow.yaml up --force-recreate
+```
+
+### 🚨 Regra de Ouro para Resolução de Problemas (Debug)
+- **Erro ANTES do Play (O site não abre / Porta ocupada):** Erro de Infraestrutura. Rodar `docker ps` para achar e derrubar contêineres fantasmas que sequestraram a porta `8080` [3.1].
+- **Erro DEPOIS do Play (Caixinha fica vermelha na Web):** Erro de Código Python. Abrir o **Log** da tarefa na interface gráfica e tratar exceções como `FileNotFoundError` adicionando `os.makedirs()` nos scripts [3.1].
