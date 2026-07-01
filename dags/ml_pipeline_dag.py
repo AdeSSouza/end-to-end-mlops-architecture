@@ -50,11 +50,18 @@ with DAG(
     )
 
     # Etapa de implantação: reconstrói a imagem Docker com o modelo e códigos atualizados
+    # Configura a esteira de implantação: reconstrói a imagem Docker vinculada 
+    # ao Docker Hub, realiza a autenticação segura e publica o modelo na nuvem.
     create_app_image = BashOperator(
         task_id="create_app_image",
         cwd=project_root,
-        bash_command = "docker build -t ml-classifier ."
-    )
+        # bash_command = "docker build -t ml-classifier ."
+        bash_command="""
+        docker build -t ${DOCKER_HUB_USERNAME}/ml-classifier .
+        echo ${DOCKER_HUB_TOKEN} | docker login -u ${DOCKER_HUB_USERNAME} --password-stdin
+        docker push ${DOCKER_HUB_USERNAME}/ml-classifier
+        """
+        )
 
     # Estabelece a dependência sequencial e linear entre os estágios do DVC
     for i in range(len(dvc_tasks) - 1):

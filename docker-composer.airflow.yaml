@@ -1,0 +1,71 @@
+# Arquivo de Orquestração de Infraestrutura Multi-Contêiner para o Apache Airflow
+version: "3"
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. BANCO DE DADOS (Persistência de Metadados do Airflow)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:13 # Versão estável do PostgreSQL homologada para o Airflow
+    environment:
+      - POSTGRES_USER=airflow     # Usuário administrador do banco de dados
+      - POSTGRES_PASSWORD=airflow # Senha de acesso ao banco de dados
+      - POSTGRES_DB=airflow       # Nome do banco de dados onde o Airflow salvará o histórico
+    networks:
+      - backend # Conecta o banco à rede isolada de segundo plano
+
+  # ---------------------------------------------------------------------------
+  # 2. DOCKER-IN-DOCKER (Permite ao Airflow criar contêineres e imagens)
+  # ---------------------------------------------------------------------------
+  dind:
+    image: docker:24.0.5-dind # Imagem especial que roda um daemon do Docker dentro do contêiner
+    privileged: true # Permissão necessária do Linux para gerenciar o hardware e criar novos contêineres
+    expose:
+      - 2375 # Abre a porta interna de comunicação sem expô-la para a máquina externa (Windows)
+    environment:
+      - DOCKER_TLS_CERTDIR= # Desativa a exigência de certificados TLS para simplificar a rede interna local
+    networks:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # 3. CONTEXTO DO APACHE AIRFLOW (O Maestro da Esteira)
+  # ---------------------------------------------------------------------------
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow # Aponta o arquivo customizado de build do Airflow
+    restart: always # Garante resiliência: se o Airflow travar ou cair, o Docker o reinicia sozinho
+    depends_on:
+      - postgres # O Airflow só inicia após o banco de dados estar ativo
+      - dind     # O Airflow só inicia após o motor interno do Docker estar pronto
+    ports:
+      - "8080:8080" # Mapeia a porta 8080 do Windows para acessar o painel visual Web do Airflow
+    environment:
+      # Configurações nativas do Airflow Core (Sobrescrevem o arquivo airflow.cfg)
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor # Ativa a execução em lote/paralela na máquina local
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow # String de conexão com o banco
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false # Remove as DAGs de exemplo para manter o painel limpo
+      - AIRFLOW__CORE__DAGS_FOLDER=/home/airflow/mlops_project/dags # Define onde o Airflow buscará as DAGs
+      
+      # Pontes de Infraestrutura e Redirecionamento do Daemon do Docker
+      - DOCKER_HOST=tcp://dind:2375 # Diz para o Airflow enviar comandos docker para o contêiner 'dind'
+      
+      # Injeção Segura de Credenciais do arquivo .env local para a nuvem
+      - DOCKER_HUB_USERNAME=${DOCKER_HUB_USERNAME}
+      - DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}
+      - DAGSHUB_USER_TOKEN=${DAGSHUB_USER_TOKEN}
+    networks:
+      - backend
+    # Sequência automatizada de comandos de inicialização (Bootstrap)
+    command: bash -c "
+      airflow db init &&
+      airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com &&
+      (airflow scheduler &) &&
+      airflow webserver
+      "
+
+# ---------------------------------------------------------------------------
+# DEFINIÇÃO DE REDE (Isolamento de tráfego entre contêineres)
+# ---------------------------------------------------------------------------
+networks:
+  backend: # Cria a malha de rede para que Airflow, Postgres e DinD conversem pelo nome do serviço

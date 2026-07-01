@@ -1,0 +1,26 @@
+# Usa a imagem oficial do Apache Airflow pré-configurada com Python 3.12
+FROM apache/airflow:2.10.5-python3.12
+
+# Altera temporariamente o usuário para 'root' para executar comandos de superusuário do Linux
+USER root
+
+# Cria o grupo de usuários 'airflow' e adiciona o usuário padrão 'airflow' a esse grupo
+RUN groupadd airflow && usermod -aG airflow airflow
+
+# Copia todos os arquivos do repositório local (seu código, configs e .env) para dentro da imagem
+COPY . /home/airflow/mlops_project
+
+# Altera a propriedade de todos os arquivos copiados para que o usuário 'airflow' possa ler e escrever neles
+RUN chown -R airflow:airflow /home/airflow/mlops_project
+
+# Retorna para o usuário padrão limitado 'airflow' por boas práticas de segurança corporativa
+USER airflow
+
+# Define a pasta de trabalho principal onde todos os próximos comandos serão executados dentro da imagem
+WORKDIR /home/airflow/mlops_project
+
+# Instala o seu projeto local ('mlops_project') em modo de pacote com todas as dependências do pyproject.toml
+RUN pip install .
+
+# Inicializa o DVC sem rastreamento de Git interno (Git-less mode), ideal para ambientes de execução isolados
+RUN dvc init --no-scm
