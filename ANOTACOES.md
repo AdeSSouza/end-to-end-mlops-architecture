@@ -190,3 +190,25 @@ Durante a homologação do contêiner em ambiente local WSL2, mapeamos o fluxo d
 ### 3. Depuração de Bugs de Inicialização (Case-Sensitivity)
 - Diagnosticamos e corrigimos uma falha de carregamento do Gunicorn (código de saída `Exited (3)`) inspecionando os logs de erro do contêiner (`docker logs`).
 - **Resolução:** Corrigida a linha 22 do script `app/main.py`, alterando a importação do cliente do MLflow de `MLflowClient` (errado) para `MlflowClient` (correto), respeitando a regra estrita de *case-sensitivity* do interpretador Python.
+
+
+## 🐳 Orquestração Multi-Contêiner e Automação de Deploy na Nuvem (Docker Hub)
+
+Elevamos a maturidade da infraestrutura do ecossistema de MLOps por meio da conteinerização completa do Apache Airflow v2.10.5 e do isolamento de tarefas em ambiente distribuído utilizando Docker-in-Docker (DinD) [3.1].
+
+### 1. Arquitetura de Produção Multi-Serviço (`docker-compose.airflow.yaml`)
+Desenvolvemos um manifesto de orquestração para desacoplar o ambiente de qualquer dependência física local (WSL) [3.1]:
+- **Persistência de Metadados (`postgres:13`):** Centralização do banco relacional de dados para rastreamento, logs e auditoria histórica de execuções das tarefas.
+- **Mecanismo de Execução Concorrente (`LocalExecutor`):** Habilitação de paralelismo nativo gerenciado pelo *Scheduler* interno, otimizando o processamento do pipeline.
+- **Isolamento de Daemon (`docker:24.0.5-dind`):** Implementação da estratégia *Docker-in-Docker*. O contêiner do Airflow comunica-se com a porta exposta `2375` do DinD via variável `DOCKER_HOST`, delegando a criação e o gerenciamento de subcontêineres de forma segura e encapsulada [3.1].
+
+### 2. Construção da Imagem Customizada (`Dockerfile.airflow`)
+A imagem de sustentação do orquestrador foi desenvolvida sob rígidos padrões de governança corporativa [3.1]:
+- **Gerenciamento de Privilégios (Mudar para `USER root` e retornar para `USER airflow`):** Execução de manipulação de grupos e comandos de propriedade de diretórios (`chown`) limitados ao escopo do administrador do Linux, mitigando o risco de vetores de ataques ou brechas de segurança em servidores remotos.
+- **Inicialização Isolada (`dvc init --no-scm`):** Configuração do DVC em modo de execução sem dependência do repositório Git (*Git-less mode*), permitindo que pipelines de reprocessamento e linhagem de dados funcionem internamente na esteira sem conflitos de controle de versão [3.5].
+
+### 3. Automação de CI/CD para o Modelo na Nuvem
+A etapa final da DAG (`create_app_image`) foi atualizada utilizando o operador `BashOperator` para automatizar o ciclo completo de publicação e entrega contínua do modelo de IA [3.1]:
+- **Build Identificado:** Constrói a imagem da aplicação web Flask acoplando a tag do usuário remoto do Docker Hub (`${DOCKER_HUB_USERNAME}/ml-classifier`) [3.1].
+- **Autenticação Não-Interativa (`--password-stdin`):** Realização de login seguro no terminal Docker consumindo o token (`DOCKER_HUB_TOKEN`) isolado no arquivo de ambiente `.env`, prevenindo a exposição ou vazamento de segredos textuais nos logs de produção.
+- **Deploy Remoto (`docker push`):** Publicação automatizada da imagem final com o modelo vencedor do MLflow no repositório remoto do Docker Hub, disponibilizando a aplicação em alta disponibilidade para deploy imediato em qualquer servidor de nuvem comercial [3.1, 3.5].
