@@ -18,6 +18,9 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 
+# Força a criação da pasta artifacts caso ela não exista no ambiente do contêiner
+os.makedirs("artifacts", exist_ok=True)
+
 # Configuração do Logger corporativo para rastreabilidade do pipeline
 logger = logging.getLogger("src.data_preprocessing.preprocess_data")
 
